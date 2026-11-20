@@ -1,0 +1,17 @@
+# Apps Script / clasp
+.clasp.json
+.clasprc.json
+node_modules/
+
+# Never commit real data or credentials
+*.csv
+*.xlsx
+.env
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1512">
+<title>Kharcha</title>
+<style>
+  :root {
+    --bg: #0f1512; --card: #18211c; --line: #26332b; --text: #e9f1ec; --muted: #8a9b91;
+    --accent: #3ddc84; --accent-ink: #06210f; --spent: #ff7a6b; --recv: #3ddc84;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f7f5; --card: #ffffff; --line: #dde6e0; --text: #14201a; --muted: #62736a;
+      --accent: #12924a; --accent-ink: #ffffff; --spent: #d4402f; --recv: #12924a;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+
+  .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .top h1 { font-size: 15px; font-weight: 600; margin: 0; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .top .month { font-size: 13px; color: var(--muted); }
+
+  .stats { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat .val { font-size: 24px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat.big .val { font-size: 30px; color: var(--spent); }
+  .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 4px; margin-bottom: 14px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600;
+    padding: 10px; border-radius: 10px; }
+  .seg button.on.spent { background: var(--spent); color: #fff; }
+  .seg button.on.recv { background: var(--recv); color: var(--accent-ink); }
+
+  .amount { display: flex; align-items: center; background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; padding: 6px 16px; margin-bottom: 12px; }
+  .amount span { font-size: 34px; color: var(--muted); margin-right: 8px; }
+  .amount input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text);
+    font-size: 44px; font-weight: 700; padding: 8px 0; font-variant-numeric: tabular-nums; }
+
+  .field { width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text);
+    border-radius: 14px; padding: 14px 16px; font-size: 16px; outline: 0; margin-bottom: 10px; }
+  .field:focus, .amount:focus-within { border-color: var(--accent); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px;
+    padding: 8px 14px; font-size: 14px; }
+  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 4px 2px 8px; }
+
+  .save { width: 100%; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 18px;
+    font-weight: 700; padding: 16px; border-radius: 16px; margin-top: 4px; }
+  .save:disabled { opacity: .55; }
+  .save:active { transform: scale(.985); }
+
+  .recent { margin-top: 24px; }
+  .recent-head { display: flex; justify-content: space-between; align-items: center; }
+  .undo { border: 0; background: transparent; color: var(--spent); font-size: 13px; padding: 6px 2px; }
+  .undo:disabled { opacity: .35; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+  .row .d { font-size: 15px; }
+  .row .w { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .row .a { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row .a.s { color: var(--spent); } .row .a.r { color: var(--recv); }
+  .empty { color: var(--muted); font-size: 14px; padding: 14px 2px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 80px); background: var(--text);
+    color: var(--bg); padding: 12px 18px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    transition: transform .25s ease; max-width: 90%; text-align: center; }
+  .toast.show { transform: translate(-50%, 0); }
+  .toast.err { background: var(--spent); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>Kharcha</h1><div class="month" id="month">&nbsp;</div></div>
+
+  <div class="stats">
+    <div class="stat big"><div class="lbl">Spent this month</div><div class="val" id="mSpent">–</div>
+      <div class="sub" id="mRecv">&nbsp;</div></div>
+    <div class="stat"><div class="lbl">Today</div><div class="val" id="tSpent">–</div></div>
+  </div>
+
+  <div class="seg" id="typeSeg">
+    <button class="on spent" data-t="Spent">Spent</button>
+    <button class="recv" data-t="Received">Received</button>
+  </div>
+
+  <div class="amount"><span>₹</span>
+    <input id="amount" type="text" inputmode="decimal" placeholder="0" autocomplete="off" autofocus>
+  </div>
+
+  <input id="desc" class="field" type="text" placeholder="What was it for?" maxlength="100" autocomplete="off">
+  <div class="chips" id="tags"></div>
+
+  <div class="label">Paid with</div>
+  <div class="chips" id="modes"></div>
+
+  <button class="save" id="save">Save</button>
+
+  <div class="recent">
+    <div class="recent-head"><div class="label">Recent</div><button class="undo" id="undo">Undo last</button></div>
+    <div id="recent"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  var TAGS = ['Food', 'Chai/Coffee', 'Petrol', 'Bus', 'Snacks', 'Icecream', 'Friends', 'Other'];
+  var MODES = ['Cash', 'GPay', 'FamPay'];
+  var state = { type: 'Spent', mode: 'Cash' };
+  try { var saved = localStorage.getItem('mode'); if (MODES.indexOf(saved) >= 0) state.mode = saved; } catch (e) {}
+
+  var $ = function (id) { return document.getElementById(id); };
+  var inr = function (n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); };
+
+  function toast(msg, err) {
+    var t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+    clearTimeout(toast.h); toast.h = setTimeout(function () { t.className = 'toast' + (err ? ' err' : ''); }, 1800);
+  }
+
+  function renderChips() {
+    var m = $('modes'); m.innerHTML = '';
+    MODES.forEach(function (x) {
+      var b = document.createElement('button'); b.className = 'chip' + (state.mode === x ? ' on' : ''); b.textContent = x;
+      b.onclick = function () { state.mode = x; try { localStorage.setItem('mode', x); } catch (e) {} renderChips(); };
+      m.appendChild(b);
+    });
+    var t = $('tags'); t.innerHTML = '';
+    TAGS.forEach(function (x) {
+      var b = document.createElement('button'); b.className = 'chip'; b.textContent = x;
+      b.onclick = function () { $('desc').value = x === 'Other' ? '' : x; if (x === 'Other') $('desc').focus(); };
+      t.appendChild(b);
+    });
+  }
+
+  $('typeSeg').onclick = function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    state.type = b.dataset.t;
+    Array.prototype.forEach.call($('typeSeg').children, function (c) {
+      c.className = c === b ? 'on ' + (state.type === 'Spent' ? 'spent' : 'recv') : (c.dataset.t === 'Spent' ? 'spent' : 'recv');
+    });
+  };
+
+  function render(s) {
+    $('month').textContent = s.monthLabel;
+    $('mSpent').textContent = inr(s.monthSpent);
+    $('mRecv').textContent = s.monthReceived ? 'Received ' + inr(s.monthReceived) : ' ';
+    $('tSpent').textContent = inr(s.todaySpent);
+    $('undo').disabled = !s.canUndo;
+    var r = $('recent'); r.innerHTML = '';
+    if (!s.recent.length) { r.innerHTML = '<div class="empty">No entries yet. Add your first one above.</div>'; return; }
+    s.recent.forEach(function (x) {
+      var row = document.createElement('div'); row.className = 'row';
+      var left = document.createElement('div');
+      var d = document.createElement('div'); d.className = 'd'; d.textContent = x.desc || '(no note)';
+      var w = document.createElement('div'); w.className = 'w'; w.textContent = x.when + ' · ' + x.mode;
+      left.appendChild(d); left.appendChild(w);
+      var a = document.createElement('div'); a.className = 'a ' + (x.type === 'Spent' ? 's' : 'r');
+      a.textContent = (x.type === 'Spent' ? '−' : '+') + inr(x.amount);
+      row.appendChild(left); row.appendChild(a); r.appendChild(row);
+    });
+  }
+
+  $('amount').addEventListener('input', function () {
+    this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+  });
+
+  $('save').onclick = function () {
+    var amt = parseFloat($('amount').value);
+    if (!amt || amt <= 0) { toast('Enter an amount', true); $('amount').focus(); return; }
+    var btn = $('save'); btn.disabled = true; btn.textContent = 'Saving…';
+    google.script.run
+      .withSuccessHandler(function (s) {
+        btn.disabled = false; btn.textContent = 'Save';
+        $('amount').value = ''; $('desc').value = '';
+        if (navigator.vibrate) navigator.vibrate(30);
+        toast('Saved ✓'); render(s); $('amount').focus();
+      })
+      .withFailureHandler(function (e) {
+        btn.disabled = false; btn.textContent = 'Save';
+        toast((e && e.message) || 'Could not save. Try again.', true);
+      })
+      .addEntry({ amount: amt, desc: $('desc').value, type: state.type, mode: state.mode });
+  };
+
+  $('undo').onclick = function () {
+    if (!confirm('Remove the entry you just saved?')) return;
+    google.script.run
+      .withSuccessHandler(function (s) { toast('Last entry removed'); render(s); })
+      .withFailureHandler(function (e) { toast((e && e.message) || 'Could not undo', true); })
+      .deleteLast();
+  };
+
+  renderChips();
+  google.script.run
+    .withSuccessHandler(render)
+    .withFailureHandler(function () { $('recent').innerHTML = '<div class="empty">Could not load. Check your connection.</div>'; })
+    .getStats();
+</script>
+</body>
+</html>
